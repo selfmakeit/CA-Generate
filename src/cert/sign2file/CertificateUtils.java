@@ -1,4 +1,4 @@
-package cert.generate_type1;
+package cert.sign2file;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -22,6 +22,7 @@ import java.util.Date;
 
 import javax.crypto.Cipher;
 
+import cert.util.Base64Utils;
 import sun.misc.BASE64Encoder;
 import sun.misc.BASE64Decoder;
 /**
@@ -569,7 +570,6 @@ public class CertificateUtils {
         if(null==x509Certificate){
         	 System.out.println("get x509Certificate faild");
         } 
-        // 获取私钥
         KeyStore keyStore = getKeyStore(keyStorePath, password);
         // 取得私钥
         PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, password.toCharArray());
@@ -589,6 +589,32 @@ public class CertificateUtils {
          }
         return sign;
     }
+    public static byte[] generateFileSign(File file, String keyStorePath, String alias, String password)
+    		throws Exception {
+    	byte[] sign = new byte[0];
+    	// 获得证书
+    	X509Certificate x509Certificate = (X509Certificate) getCertificate(keyStorePath, alias, password);
+    	if(null==x509Certificate){
+    		System.out.println("get x509Certificate faild");
+    	} 
+    	KeyStore keyStore = getKeyStore(keyStorePath, password);
+    	// 取得私钥
+    	PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, password.toCharArray());
+    	// 构建签名
+    	Signature signature = Signature.getInstance(x509Certificate.getSigAlgName());
+    	signature.initSign(privateKey);
+    	if (file.exists()) {
+    		FileInputStream in = new FileInputStream(file);
+    		byte[] cache = new byte[CACHE_SIZE];
+    		int nRead = 0;
+    		while ((nRead = in.read(cache)) != -1) {
+    			signature.update(cache, 0, nRead);
+    		}
+    		in.close();
+    		sign = signature.sign();
+    	}
+    	return sign;
+    }
    
     /**
      * <p>
@@ -605,6 +631,21 @@ public class CertificateUtils {
     public static String signFileToBase64(String filePath, String keyStorePath, String alias, String password)
             throws Exception {
         return Base64Utils.encode(generateFileSign(filePath, keyStorePath, alias, password));
+    }
+    /**
+     * <p>
+     * 文件签名成BASE64编码字符串
+     * </p>
+     * @param file
+     * @param keyStorePath
+     * @param alias
+     * @param password
+     * @return
+     * @throws Exception
+     */
+    public static String signFileToBase64(File file, String keyStorePath, String alias, String password)
+    		throws Exception {
+    	return Base64Utils.encode(generateFileSign(file, keyStorePath, alias, password));
     }
    
     /**
@@ -669,6 +710,43 @@ public class CertificateUtils {
         return result;
     }
    
+    /**
+     * <p>
+     * 校验文件完整性
+     * </p>
+     * <p>
+     * 鉴于FileChannel存在的巨大Bug，该方法已停用，被validateFileSign取代
+     * </p>
+     *
+     * @param file 文件
+     * @param sign 数据签名[BASE64]
+     * @param certificatePath 证书存储路径
+     * @return
+     * @throws Exception
+     */
+    @Deprecated
+    public static boolean verifyFileSign(File file, String sign, String certificatePath)
+    		throws Exception {
+    	boolean result = false;
+    	// 获得证书
+    	X509Certificate x509Certificate = (X509Certificate) getCertificate(certificatePath);
+    	// 获得公钥
+    	PublicKey publicKey = x509Certificate.getPublicKey();
+    	// 构建签名
+    	Signature signature = Signature.getInstance(x509Certificate.getSigAlgName());
+    	signature.initVerify(publicKey);
+    	if (file.exists()) {
+    		byte[] decodedSign = Base64Utils.decode(sign);
+    		FileInputStream in = new FileInputStream(file);
+    		FileChannel fileChannel = in.getChannel();
+    		MappedByteBuffer byteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, file.length());
+    		signature.update(byteBuffer);
+    		in.close();
+    		result = signature.verify(decodedSign);
+    	}
+    	return result;
+    }
+    
     /**
      * <p>
      * 校验文件签名

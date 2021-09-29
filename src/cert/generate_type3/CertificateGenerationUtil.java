@@ -20,6 +20,7 @@ import java.security.cert.X509Certificate;
 
 
 
+
 //import javax.security.cert.Certificate;
 import sun.misc.BASE64Encoder;
 import sun.security.tools.keytool.CertAndKeyGen;
@@ -28,7 +29,7 @@ import sun.security.x509.CertificateExtensions;
 import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
-import utils.ExportCertUtil;
+import cert.util.ExportCertUtil;
 
 import com.alibaba.fastjson.JSONObject;
  
@@ -109,6 +110,7 @@ public class CertificateGenerationUtil {
             Certificate[] certs=keyStore.getCertificateChain(alias);
             System.out.println("Certificate chain length : "+certs.length);
             for(Certificate cert:certs){
+//            	System.err.println(JSONObject.toJSONString(cert));
                 System.out.println(cert.toString());
               
             }

@@ -43,28 +43,10 @@ public class CertificateChainGeneration {
             keyGen2.generate(1024);
             PrivateKey topPrivateKey=keyGen2.getPrivateKey();
             X509Certificate topCertificate = keyGen2.getSelfCertificate(new X500Name("CN=TOP"), (long) 365 * 24 * 60 * 60);
-            
-            //Generate end certificate
-            CertAndKeyGen keyGen3=new CertAndKeyGen("RSA","SHA1WithRSA",null);
-            keyGen3.generate(1024);
-            PrivateKey endPrivateKey=keyGen3.getPrivateKey();
-            X509Certificate endCertificate = keyGen3.getSelfCertificate(new X500Name("CN=END"), (long) 365 * 24 * 60 * 60);
-            
-            //Generate end certificate
-            CertAndKeyGen keyGen4=new CertAndKeyGen("RSA","SHA1WithRSA",null);
-            keyGen4.generate(1024);
-            PrivateKey endPrivateKey2=keyGen4.getPrivateKey();
-            X509Certificate endCertificate2 = keyGen4.getSelfCertificate(new X500Name("CN=END2"), (long) 365 * 24 * 60 * 60);
              
             rootCertificate   = createSignedCertificate(rootCertificate,rootCertificate,rootPrivateKey);
             topCertificate    = createSignedCertificate(topCertificate,rootCertificate,rootPrivateKey);
             middleCertificate = createSignedCertificate(middleCertificate,topCertificate,topPrivateKey);
-            endCertificate = createSignedCertificate(endCertificate,middleCertificate,middlePrivateKey);
-            endCertificate2 = createSignedCertificate(endCertificate2,endCertificate,endPrivateKey);
-            System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>key>>>>>");
-            System.out.println(rootPrivateKey.toString());
-            System.out.println(topPrivateKey.toString());
-            System.out.println(middlePrivateKey.toString());
             X509Certificate[] chain = new X509Certificate[3];
             chain[1]=topCertificate;
             chain[0]=middleCertificate;

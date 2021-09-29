@@ -62,7 +62,7 @@ public class GenX509CertGenerator {
     }
  
     @SuppressWarnings({ "restriction", "resource" })
-	public void createCert(X509Certificate certificate, PrivateKey rootPrivKey,KeyPair kp,CertParamEntity childCaParam) throws CertificateException, IOException,
+	public X509Certificate createCert(X509Certificate certificate, PrivateKey rootPrivKey,KeyPair kp,CertParamEntity childCaParam) throws CertificateException, IOException,
             InvalidKeyException, NoSuchAlgorithmException,
             NoSuchProviderException, SignatureException {
  
@@ -173,11 +173,11 @@ public class GenX509CertGenerator {
             KeyStore inputKeyStore = KeyStore.getInstance("pkcs12");
             inputKeyStore.load(in, childCaParam.getCaKeyStorePwd().toCharArray());
             Certificate cert = inputKeyStore.getCertificate(childCaParam.getCaAlias());
-            System.out.print(cert.getPublicKey());
+//            System.out.print(cert.getPublicKey());
             PrivateKey privk = (PrivateKey) inputKeyStore.getKey(childCaParam.getCaAlias(),childCaParam.getCaKeyStorePwd().toCharArray());
             FileOutputStream privKfos = new FileOutputStream(new File(childCaParam.getCaprivateKeyPath()));
             privKfos.write(privk.getEncoded());
-            System.out.print(privk);
+//            System.out.print(privk);
             // base64.encode(key.getEncoded(), privKfos);
             in.close();
         } catch (Exception e) {
@@ -187,7 +187,7 @@ public class GenX509CertGenerator {
         // 生成文件
 //        x509certimpl1.verify(certificate.getPublicKey(), null);
         x509certimpl1.verify(certificate.getPublicKey());
- 
+        return x509certimpl1;
     }
  
     /**
@@ -207,7 +207,7 @@ public class GenX509CertGenerator {
         // 返回指定类型的 keystore 对象。此方法从首选 Provider 开始遍历已注册安全提供者列表。返回一个封装 KeyStoreSpi
         // 实现的新 KeyStore 对象，该实现取自第一个支持指定类型的 Provider。
         KeyStore outputKeyStore = KeyStore.getInstance("pkcs12");
-        System.out.println("KeyStore类型：" + outputKeyStore.getType());
+//        System.out.println("KeyStore类型：" + outputKeyStore.getType());
         // 从给定输入流中加载此 KeyStore。可以给定一个密码来解锁 keystore（例如，驻留在硬件标记设备上的 keystore）或检验
         // keystore 数据的完整性。如果没有指定用于完整性检验的密码，则不会执行完整性检验。如果要创建空
         // keystore，或者不能从流中初始化 keystore，则传递 null 作为 stream 的参数。注意，如果此 keystore
@@ -235,7 +235,7 @@ public class GenX509CertGenerator {
  
         KeyStore outputKeyStore = KeyStore.getInstance("jks");
  
-        System.out.println(outputKeyStore.getType());
+//        System.out.println(outputKeyStore.getType());
  
         outputKeyStore.load(null, pwd.toCharArray());
  
@@ -263,7 +263,7 @@ public class GenX509CertGenerator {
      * @throws UnrecoverableKeyException
      */
     @SuppressWarnings("restriction")
-	public void createRootCA(CertParamEntity param) throws NoSuchAlgorithmException,
+	public X509Certificate createRootCA(CertParamEntity param) throws NoSuchAlgorithmException,
             NoSuchProviderException, InvalidKeyException, IOException,
             CertificateException, SignatureException, UnrecoverableKeyException {
  
@@ -290,7 +290,7 @@ public class GenX509CertGenerator {
         // are bootstrapping your security infrastructure, or deploying system
         // prototypes.自签名的根证书
         // 后一个long型参数代表从现在开始的有效期 单位为秒（如果不想从现在开始算 可以在后面改这个域）
-        X509Certificate certificate = cak.getSelfCertificate(subject,new Date(), 3650 * 24L * 60L * 60L);
+        X509Certificate certificate = cak.getSelfCertificate(subject,new Date(), param.getValidDay() * 24L * 60L * 60L);
         X509Certificate[] certs = { certificate };
  
         try {
@@ -313,10 +313,10 @@ public class GenX509CertGenerator {
         fw.write(encoded);  
         fw.write("\r\n-----END CERTIFICATE-----");  //非必须  
         fw.close();  
- 
+        return certificate;
     }
  
-    public void signCert(CertParamEntity childCaParam) throws NoSuchAlgorithmException,CertificateException, IOException, UnrecoverableKeyException,
+    public X509Certificate signCert(CertParamEntity childCaParam) throws NoSuchAlgorithmException,CertificateException, IOException, UnrecoverableKeyException,
             InvalidKeyException, NoSuchProviderException, SignatureException {
  
         try {
@@ -342,12 +342,13 @@ public class GenX509CertGenerator {
             // PrivateKeyEntry 为参数的 setEntry 创建的条目，则返回该条目中证书链的第一个元素。
             X509Certificate certificate = (X509Certificate) ks.getCertificate(rootCaParam.getCaAlias());
  
-            createCert(certificate, privK, genKey(), childCaParam);
+            return createCert(certificate, privK, genKey(), childCaParam);
  
         } catch (KeyStoreException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+		return null;
     }
  
     public KeyPair genKey() throws NoSuchAlgorithmException {
@@ -356,40 +357,30 @@ public class GenX509CertGenerator {
  
         kpg.initialize(1024, sr);
  
-        System.out.print(kpg.getAlgorithm());
+//        System.out.print(kpg.getAlgorithm());
  
         KeyPair kp = kpg.generateKeyPair();
  
         return kp;
     }
  
-    public static void main(String[] args) {
- 
+    public static X509Certificate generateSignedCert(CertParamEntity rootCaParam,CertParamEntity childCaParam) {
+    	X509Certificate crt = null;
         try {
- 
             GenX509CertGenerator gcert = new GenX509CertGenerator();
-            CertParamEntity rootCa = new CertParamEntity();
-            rootCa.setDnName("CN=RootCA,OU=hackwp,O=wp,L=BJ,S=BJ,C=CN");
-            rootCa.setCaAlias("RootCA");
-            rootCa.setCaKeyStorePwd("123456");
-            rootCa.setCaPath("f:\\GenX509Cert\\RootCa.crt");
-            rootCa.setCaKeyStorePath("f:\\GenX509Cert\\RootCa.pfx");
-            gcert.createRootCA(rootCa);
-            CertParamEntity childCa = new CertParamEntity();
-            childCa.setDnName("CN=childCA, OU=wps, O=wps, L=BJ, ST=BJ, C=CN");
-            childCa.setCaAlias("childCA");
-            childCa.setCaKeyStorePwd("123456");
-            childCa.setCaPath("F:\\GenX509Cert\\childCa.crt");
-            childCa.setCaKeyStorePath("f:\\GenX509Cert\\childCa.pfx");
-            childCa.setCaprivateKeyPath("F:\\GenX509Cert\\ScriptX.pvk");;
-            childCa.setValidDay(365);
-            childCa.setParentCa(rootCa);
-            
-            gcert.signCert(childCa);
- 
+            if(null==rootCaParam){
+            	crt = gcert.createRootCA(childCaParam);
+            }else {
+            	if(null==childCaParam.getParentCa()){
+            		childCaParam.setParentCa(rootCaParam);
+            	}
+            	crt = gcert.signCert(childCaParam);
+			}
+           
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        return crt;
     }
 }

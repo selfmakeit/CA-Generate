@@ -53,22 +53,18 @@ public class CertChainValidator {
             InvalidAlgorithmParameterException, NoSuchAlgorithmException,
             NoSuchProviderException {
         X509Certificate[] certs = new X509Certificate[keyStore.size()];
-        System.out.println("size :"+keyStore.size());
+//        System.out.println("size :"+keyStore.size());
         int i = 0;
         Enumeration<String> alias = keyStore.aliases();
  
         while (alias.hasMoreElements()) {
             X509Certificate cc = (X509Certificate) keyStore.getCertificate(alias.nextElement());
             certs[i++] = cc;
-            System.out.println("ccccc>:"+cc.toString());
                     
         }
-        System.out.println(">>>>>>client:");
-        System.out.println(client.toString());
-        System.out.println(">>>>>>trusted:");
-        for(int j=0;j<certs.length-1;j++){
-        	System.out.println(certs[j].toString());
-        }
+//        for(int j=0;j<certs.length-1;j++){
+//        	System.out.println(certs[j].toString());
+//        }
         return validateKeyChain(client, certs);
     }
  
@@ -84,8 +80,7 @@ public class CertChainValidator {
      * @throws NoSuchProviderException
      */
     @SuppressWarnings("rawtypes")
-	public static boolean validateKeyChain(X509Certificate client,
-            X509Certificate... trustedCerts) throws CertificateException,
+	public static boolean validateKeyChain(X509Certificate client,X509Certificate... trustedCerts) throws CertificateException,
             InvalidAlgorithmParameterException, NoSuchAlgorithmException,
             NoSuchProviderException {
         boolean found = false;
@@ -115,10 +110,10 @@ public class CertChainValidator {
                     if (isSelfSigned(trustedCerts[i])) {
                         // found root ca
                         found = true;
-                        System.out.println("validating root" + trustedCerts[i].getSubjectX500Principal().getName());
+//                        System.out.println("validating root" + trustedCerts[i].getSubjectX500Principal().getName());
                     } else if (!client.equals(trustedCerts[i])) {
                         // find parent ca
-                        System.out.println("validating via:" + trustedCerts[i].getSubjectX500Principal().getName());
+//                        System.out.println("validating via:" + trustedCerts[i].getSubjectX500Principal().getName());
                         found = validateKeyChain(trustedCerts[i], trustedCerts);
                     }
                 } catch (CertPathValidatorException e) {
@@ -154,30 +149,32 @@ public class CertChainValidator {
         }
     }
  
-    public static void main(String... args) throws KeyStoreException,
-            NoSuchAlgorithmException, CertificateException, IOException,
-            InvalidAlgorithmParameterException, NoSuchProviderException {
+    public static boolean checkCert(String rootKsPath,String rootKsPwd,String needCheckCaPath)  {
     	
-        String storename = "f:\\GenX509Cert\\RootCa.pfx";
-        char[] storepass = "123456".toCharArray();
+        String storename = rootKsPath;
+        char[] storepass = rootKsPwd.toCharArray();
  
-        KeyStore ks = KeyStore.getInstance("pkcs12");
         FileInputStream fin = null;
         try {
+        	KeyStore ks = KeyStore.getInstance("pkcs12");
             fin = new FileInputStream(storename);
             ks.load(fin, storepass);
-            Certificate certificate = getCertificateFromFile("f:\\GenX509Cert\\ScriptX.crt");
+            Certificate certificate = getCertificateFromFile(needCheckCaPath);
+            
+//           System.out.println(certificate.toString());
             if (validateKeyChain((X509Certificate) certificate, ks)) {
-                System.out.println("validate success");
+//                System.out.println("validate success");
+                return true;
             } else {
-                System.out.println("validate fail");
+//                System.out.println("validate fail");
+                return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             IOUtils.closeQuietly(fin);
         }
- 
+        return false;
     }
     private static Certificate getCertificateFromFile(String certificatePath)
     		throws Exception {
