@@ -33,8 +33,12 @@ import java.util.Set;
 
 
 
+
+
 import org.apache.commons.io.IOUtils;
 
+import cert.generate_type4.CertParamEntity;
+import cert.generate_type4.GenX509CertGenerator;
 import sun.misc.BASE64Decoder;
  
 public class CertChainValidator {
@@ -202,4 +206,32 @@ public class CertChainValidator {
          Certificate certificate = cf.generateCertificate(in);
     	return certificate;
     }
+    
+    public static void main(String[] args) {
+    	CertParamEntity rootParam = new CertParamEntity();
+		rootParam.setDnName("CN=RootCA,OU=hackwp,O=wp,L=BJ,S=BJ,C=CN");
+		rootParam.setCaAlias("RootCA");
+		rootParam.setCaKeyStorePwd("123456");
+		rootParam.setCaPath("f:\\GenX509Cert\\RootCa.crt");
+		rootParam.setCaKeyStorePath("f:\\GenX509Cert\\RootCa.pfx");
+		rootParam.setValidDay(3650);
+        X509Certificate rootCa = GenX509CertGenerator.generateSignedCert(null,rootParam);
+        CertParamEntity childParam = new CertParamEntity();
+        childParam.setDnName("CN=childCA, OU=wps, O=wps, L=BJ, ST=BJ, C=CN");
+        childParam.setCaAlias("childCA");
+        childParam.setCaKeyStorePwd("123456");
+        childParam.setCaPath("F:\\GenX509Cert\\childCa.crt");
+        childParam.setCaKeyStorePath("f:\\GenX509Cert\\childCa.pfx");
+        childParam.setCaprivateKeyPath("F:\\GenX509Cert\\childCa.pvk");;
+        childParam.setValidDay(365);
+        X509Certificate childCa = GenX509CertGenerator.generateSignedCert(rootParam,childParam);
+//        
+    	boolean st = CertChainValidator.checkCert(rootParam.getCaKeyStorePath(), rootParam.getCaKeyStorePwd(), rootParam.getCaPath());
+    	if (st) {
+   		 System.out.println("rootCA validate success");
+		}else {
+			System.out.println("rootCA validate fail");
+		}
+	}
+    
 }
